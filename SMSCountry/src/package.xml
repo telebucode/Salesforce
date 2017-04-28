@@ -1,5 +1,56 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>SMS</fullName>
+    <description>SMS Sending</description>
+    <types>
+        <members>SMSReportItem</members>
+        <members>SMSReportReponse</members>
+        <members>SMS_Country</members>
+        <members>SMStest</members>
+        <members>SmsCountry</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>smscountry</members>
+        <name>ApexPage</name>
+    </types>
+    <types>
+        <members>SC_trgAccount</members>
+        <members>SC_trgLead</members>
+        <members>SC_trgOpportunity</members>
+        <members>SC_trigContact</members>
+        <name>ApexTrigger</name>
+    </types>
+    <types>
+        <members>SMSCountry__c.api_sender__c</members>
+        <members>SMSCountry__c.api_token__c</members>
+        <members>SMSCountry__c.apikey__c</members>
+        <members>SMSTemplate__c.TemplateID__c</members>
+        <members>SMSTemplate__c.TemplateName__c</members>
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>SMSCountry__c</members>
+        <members>SMSTemplate__c</members>
+        <name>CustomObject</name>
+    </types>
+    <types>
+        <members>SMSCountry</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>SMSCountry__c-SMSCountry Layout</members>
+        <members>SMSTemplate__c-SMSTemplate Layout</members>
+        <name>Layout</name>
+    </types>
+    <types>
+        <members>SMSCountry</members>
+        <name>RemoteSiteSetting</name>
+    </types>
+    <types>
+        <members>jQuery</members>
+        <members>jQueryUi</members>
+        <name>StaticResource</name>
+    </types>
     <version>38.0</version>
 </Package>

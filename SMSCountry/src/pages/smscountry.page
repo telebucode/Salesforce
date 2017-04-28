@@ -27,7 +27,6 @@
     
         function onLoad() {
             smsTxtbox = j$(".smsnotes").attr("id");
-            //console.log(smsTxtbox);
             if(smsTxtbox!=undefined) {                
                 transliterationControl = new google.elements.transliteration.TransliterationControl(aLang);
                 transliterationControl.makeTransliteratable([smsTxtbox]);
