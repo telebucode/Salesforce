@@ -1,0 +1,576 @@
+<apex:page docType="html-5.0" controller="SmsCountry" showHeader="true">
+    <style type="text/css">
+        .pbBottomButtons { border-top:none !important; }
+    </style>
+	<apex:includeScript value="{!$Resource.jQuery}"/>
+	<apex:includeScript value="{!$Resource.jQueryUi}"/>    
+    <apex:includeScript value="https://www.google.com/jsapi"  />    
+    <apex:stylesheet value="https://code.jquery.com/ui/jquery-ui-git.css"/>
+    <script type="text/javascript">
+    	j$ = jQuery.noConflict();    	
+    	var phonenumbers = '';
+    	var multiLang = 0;
+    	//Language Translator
+    	var smsTxtbox = '';
+    	var preferredLanguage = "te";
+        var transliterationControl;
+    	var aLang = {
+            sourceLanguage: "en",
+            destinationLanguage: ["te", "hi", "kn", "ml", "ta", "ar", "ur", "ti", "sr", "si", "ru", "sa", "pa", "fa", "or", "ne", "mr", "gu", "el", "zh", "bn", "am"],
+            transliterationEnabled: false,
+            shortcutKey: "ctrl+g"
+        };
+        google.load("elements", "1", { packages: "transliteration" });
+    	
+    	function serverUnreachableHandler(a) { j$('.smswarn').html('Transliteration Server unreachable'); }
+        function serverReachableHandler(a) { j$('.smswarn').html(''); }
+    
+        function onLoad() {
+            smsTxtbox = j$(".smsnotes").attr("id");
+            //console.log(smsTxtbox);
+            if(smsTxtbox!=undefined) {                
+                transliterationControl = new google.elements.transliteration.TransliterationControl(aLang);
+                transliterationControl.makeTransliteratable([smsTxtbox]);
+                transliterationControl.addEventListener(google.elements.transliteration.TransliterationControl.EventType.SERVER_UNREACHABLE, serverUnreachableHandler);
+                transliterationControl.addEventListener(google.elements.transliteration.TransliterationControl.EventType
+                    .SERVER_REACHABLE,
+                    serverReachableHandler);
+            }
+        }
+    	google.setOnLoadCallback(onLoad);
+        Object.defineProperty(HTMLScriptElement.prototype, 'src', {
+            get: function() {
+                return this.getAttribute('src')
+            },
+            set: function(url) {
+                var prefix = "http://";
+        
+                if (url.startsWith(prefix))
+                    url = "https://" + url.substr(prefix.length);
+        
+                //console.log('being set: ' + url);
+                this.setAttribute('src', url);
+            }
+        });
+    	function onDocReady(){
+            smsTxtbox = j$(".smsnotes").attr("id");
+            j$('.charCount').attr('readonly','readonly');
+            //contacts entity changed	
+            j$(".phoneblocks").change(function(){
+                j$('[id$=":smsphone"]').val('');
+                phonenumbers='';                
+            });
+            //Language changed	
+            j$(".language").change(function(){
+                preferredLanguage = j$(".language").val();
+                if(preferredLanguage == "en") 
+                     j$('.smsnotes').removeAttr('dir');
+                smslen();
+            });  
+            
+			if(smsTxtbox!=undefined) {
+                j$('.smsnotes').bind('focusin',function ()
+                 {
+                     //console.log(smsTxtbox);
+                     preferredLanguage = j$(".language").val();                                          
+                     if(transliterationControl == undefined)
+                     	transliterationControl = new google.elements.transliteration.TransliterationControl(aLang);                     
+                     if(preferredLanguage == "en") {
+                         transliterationControl.disableTransliteration();
+                         j$('.smsnotes').removeAttr('dir');
+                         smslen();
+                         return;
+                     }
+                     transliterationControl.makeTransliteratable([smsTxtbox]);
+                     transliterationControl.enableTransliteration();
+                     transliterationControl.setLanguagePair(google.elements.transliteration.LanguageCode.ENGLISH, preferredLanguage); 
+                     smslen();
+                 });
+            }
+            j$(".smsnotes").bind("blur focus focusin focusout resize scroll unload click dblclick mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave change select keydown keypress keyup error", function(e){
+                smslen();
+            });
+            //console.log('Current Menu: '+j$('[id$=":cMenu"]').val());
+            //j$(".filter_from_date").mask("99/99/9999");
+            //j$(".filter_to_date").mask("99/99/9999");
+            /*j$( ".filter_from_date" ).datepicker({dateFormat: "dd-mm-yy"});
+            j$( ".filter_to_date" ).datepicker({dateFormat: "dd-mm-yy"});*/
+            //console.log("Page refreshed");
+            clssms();
+        }
+    	//Message Track section ready
+    	function mTrack_ready() {
+            j$( ".filter_from_date" ).datepicker({dateFormat: "dd-mm-yy"});
+            j$( ".filter_to_date" ).datepicker({dateFormat: "dd-mm-yy"});
+        }
+        j$(document).ready(function(){onDocReady();clearPage();}); 
+    	//Contacts checked
+    	function checkcontact(dis=null){
+            var cphone='';
+            if(dis){                
+                cphone=j$(dis).attr('title');
+                if(j$(dis).prop('checked')==false) {                                        
+                    phonenumbers = phonenumbers.replace(cphone+",", "");
+                    phonenumbers = phonenumbers.replace(","+cphone, "");
+                    phonenumbers = phonenumbers.replace(cphone, "");
+                    j$('[id$=":smsphone"]').val(phonenumbers);
+                    setchecked(false,cphone);
+                    return true;
+                } else if(j$(dis).prop('checked')==true) setchecked(true,cphone);
+            }
+            j$('.rphone:checked').each(function() {
+                cphone=j$(this).attr('title');
+                if(cphone) {
+                    if(phonenumbers.indexOf(cphone)==-1) {
+                        if(phonenumbers) phonenumbers += ',';
+                		phonenumbers += j$(this).attr('title');
+                    }
+                }
+            });
+            j$('[id$=":smsphone"]').val(phonenumbers);
+        }
+    	//set contact as checked
+    	function setchecked(chkd,pno=null){
+            var phonenumbers2 = '';
+            if(pno) phonenumbers2=pno;
+            else phonenumbers2 = phonenumbers;
+            if(phonenumbers2=='') return;
+            if(j$('.rphone').length==0) return;
+            var cphone='';
+            j$('.rphone').each(function() {
+                cphone=j$(this).attr('title');
+                if(cphone) {
+                    if(pno) {
+                        if(phonenumbers2.indexOf(cphone)!=-1) j$(this).prop('checked',chkd);
+                    } else if(phonenumbers2.indexOf(cphone)!=-1) j$(this).prop('checked',true);
+                }
+            });
+            j$(".phoneall").prop("checked",false);
+        }
+    	//clear selected contacts
+    	function clearContacts(){
+            j$('[id$=":smsphone"]').val('');
+    	}
+    	//check all phone numbers
+    	function checkallphones(dis){
+            j$('.rphone').prop('checked',j$(dis).prop('checked'));
+            checkcontact();
+        }
+    	//all phone numbers selection
+    	function checkallcontacts(){
+            j$('[id$=":smsall"]').val(j$('.smsall').prop('checked')?1:0);
+        }
+    	//Update template
+    	function edit_temp(dis) {
+            j$('[id$=":editTemp"]').val(j$(dis).prop('checked')?1:0);
+        }
+    	//Set Template
+    	function setTemplate(dis){
+            if(dis.value!='') {
+                var strnew = j$(".t"+dis.value).html();
+                var regex = /<br\s*[\/]?>/gi;
+                var ss = strnew.replace(regex, "\n");
+                var regexSpace = /&(nbsp);/g; 
+                var ssNew = ss.replace(regexSpace, " ");
+                //console.log(ssNew + "afterreplace");
+                j$('.smsnotes').val(ssNew); 
+                j$('.etBox').show();
+                j$('[id$=":editTemp"]').val(1);
+                j$('.tTitle').val(j$(dis).find('option:selected').text());
+            } else {
+                j$('.smsnotes').val('');
+                j$('.etBox').hide();
+                j$('[id$=":editTemp"]').val(0);
+                j$('.tTitle').val('');
+            }  
+            smslen();
+        }
+    	//Message count
+    	function smslen(evt=null) {
+            var anchar=0;
+            //console.log('evt:'+evt.which);
+            //console.log('event:'+event.keyCode);
+            /*var charCode = (evt.which) ? evt.which : event.keyCode;
+            if ((charCode >= 0 && charCode<=40) || (charCode >= 48 && charCode<=57) || (charCode >= 65 && charCode<=90) || (charCode >= 97 && charCode<=122)) {
+                anchar=1;
+            }
+            //console.log(charCode+':'+anchar);
+            if(anchar==0 && preferredLanguage!='en') {
+                multiLang=1;
+            }*/
+            //console.log('multiLang:'+multiLang);
+            multiLang=0;
+            var sLen = j$('.smsnotes').val().length;
+            if(sLen) {
+                var str = j$('.smsnotes').val();
+                for (var i = 0; i < sLen; i++) { 
+                    n = str.charCodeAt(i);
+                    if(n>256)
+                    {
+                        multiLang=1;
+                        
+                        break;
+                    }
+                }
+           }
+            
+      			
+            var multi = multiLang;
+            /*var resString = j$('.smsnotes').val();
+            resString = resString.replace(/\s+/g, '');
+            
+            //if (/[^A-Za-z]/g.test(resString))
+             if (/^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]*$/.test(resString))    
+                {
+                     
+                    console.log('contains only English characters') ;
+                }
+            else{
+                console.log('contains characters other than English') ;
+                multi = 1;
+            }*/
+            var v1 = 160;
+            var v2 = 154;            
+            if(multi == 1){
+                v1 = 70;
+                v2 = 64;
+            }
+            
+            if(sLen>v1) {
+                var sc = sLen/v2;
+                var sc2 = parseInt(sc);
+                if(sc>sc2) sc2++;
+                //j$('.smswarn').html('WARNING : Message will be considered as '+sc2+' SMS\'s');
+            } else sc2=1;
+             
+            /*var sc = sLen/160;
+            if(sc>1) { 
+                var sc2 = parseInt(sc);
+                if(sc>sc2) sc2++;
+                //j$('.smswarn').html('WARNING : Message will be considered as '+sc2+' SMS\'s');
+            } else sc2=1;*/
+            j$('.charCount').val(sLen+'/'+sc2);
+            //console.log(j$('.smsnotes').val());
+        } 
+    	//Goto Page
+    	function gotopage(){
+            location.replace("{!$CurrentPage.URL}");
+        }
+    	//clear messages
+    	function clsinfo(){
+            j$(".smsPanel .message").remove();
+        }
+    	//Delete template
+    	function rmTemp(){
+            j$(".smsPanel .message").remove();
+            j$(".smsnotes").val('');
+        }
+    	//Clear SMS Info
+    	function clssms(){
+            if(j$(".smsPanel .message.confirmM3").length>0) {
+                j$(".language").val('en');
+                preferredLanguage = j$(".language").val();
+                j$('.smsall').prop('checked',false);
+                j$(".smsnotes").val('');
+                j$(".charCount").val('');
+                clearContacts();
+                phonenumbers = '';
+                j$('.rphone').prop('checked',false);
+            }
+        }
+    	//change menu
+    	function chagePage(dis){            
+            j$('[id$=":cMenu"]').val(dis.value);
+            totResults();
+            //dis.form.submit();
+        }
+    	//change page
+    	function clearPage(){
+            clssms(); 
+            rmTemp();
+            clsinfo();
+            j$('.tTitle').val('');
+            j$('.templates').val('');
+            j$(".language").val('en');
+            preferredLanguage = j$(".language").val();
+            j$('.smsall').prop('checked',false);
+            j$(".smsnotes").val('');
+            j$(".charCount").val('');
+            onDocReady();
+            mTrack_ready();
+            /*j$('.tTitle').val('');
+            j$('.templates').val('');
+            j$('[id$=":searchValue"]').val('');
+            j$('[id$=":searchBox"]').val('');*/
+        }
+       
+    </script> 
+    
+    <apex:outputPanel > 
+        <apex:form >  
+            <apex:pageBlock >
+                <apex:actionStatus id="menuStatus"  >
+                    <apex:facet name="start" >
+                        <img src="/img/loading.gif" />
+                    </apex:facet>
+                </apex:actionStatus>
+                <apex:actionFunction name="totResults" action="{!totpageRefresh}" status="menuStatus" rerender="totSmsBlock" oncomplete="clearPage()"/>
+                <apex:inputHidden value="{!cMenu}" id="cMenu" />
+                <apex:pageBlockSection showHeader="false" columns="2">
+                    <apex:sectionHeader title="SMSCOUNTRY"/>
+                    <apex:selectList size="0" label="Menu" onchange="chagePage(this)" value="{!smsmenu}">                          
+                        <apex:selectOptions value="{!smsmenus}" />
+                    </apex:selectList>
+                </apex:pageBlockSection>    
+            </apex:pageBlock>            
+        </apex:form>        
+        <apex:outputText style="display:none;" escape="false" value="{!senderList}"></apex:outputText>
+    </apex:outputPanel>
+  <apex:outputPanel id="totSmsBlock"> 
+    <apex:outputPanel >
+        <apex:form >
+            <apex:pageBlock id="authblock" title="Configuration" rendered="{! IF(smsmenu=='1',true,false)}">
+                <apex:inputHidden value="{!report_offset}" />
+                <apex:inputHidden value="{!sender_idtc}" />
+                <apex:inputHidden value="{!filter_from_date}" />
+                <apex:inputHidden value="{!filter_to_date}" />
+                <apex:inputHidden value="{!phoneblock}" />
+                <apex:inputHidden value="{!searchValue}" />
+                <apex:inputHidden value="{!smsphones}" />
+                <apex:inputHidden value="{!smsall}" />
+                <apex:inputHidden value="{!smsnotes}" />
+                <apex:inputHidden value="{!sender_id}" />
+                <apex:inputHidden value="{!etemplate}" />
+                <apex:inputHidden value="{!editTemp}" />
+                <apex:inputHidden value="{!dtemplate}" />
+                <apex:inputHidden value="{!tempDivs}" />
+                
+                
+                <apex:actionStatus id="authStatus"  >
+                    <apex:facet name="start" >
+                        <img src="/img/loading.gif" />
+                    </apex:facet>
+                </apex:actionStatus>
+                <apex:pageMessages id="authblockMessage" escape="false" />
+                <apex:pageBlockButtons location="bottom" >
+                    <apex:commandButton value="Save API Details" oncomplete="gotopage()" reRender="authblockMessage" status="authStatus" action="{!saveAuth}"/>
+                </apex:pageBlockButtons>
+                <apex:pageBlockSection showHeader="false" columns="1">
+                    <apex:inputText label="API Key" size="50" html-placeholder="Key" required="true" value="{!apikey}" />
+                    <apex:inputText label="API Token" size="50" html-placeholder="Token" value="{!apitoken}" />
+                    <apex:selectList size="0" label="Sender ID" styleClass="senderid" value="{!sender_id}">
+                        <apex:selectOption itemValue="" itemLabel="Select Sender ID"/>
+                        <apex:selectOptions value="{!senderids}" />
+                    </apex:selectList>
+                </apex:pageBlockSection>                 
+            </apex:pageBlock>                        
+        </apex:form>      
+   </apex:outputPanel>
+   <apex:outputPanel rendered="{! IF(smsmenu=='3' && smsapi==true,true,false)}" >
+   	<apex:form styleClass="sms_filter_form" id="smses_lists" >
+        <apex:pageBlock title="Message Tracking">            
+         
+            <apex:inputHidden value="{!phoneblock}" />
+            <apex:inputHidden value="{!searchValue}" />
+            <apex:inputHidden value="{!smsphones}" />
+            <apex:inputHidden value="{!smsall}" />
+            <apex:inputHidden value="{!smsnotes}" />
+            <apex:inputHidden value="{!sender_id}" />
+            <apex:inputHidden value="{!etemplate}" />
+            <apex:inputHidden value="{!editTemp}" />
+            <apex:inputHidden value="{!dtemplate}" />
+            <apex:inputHidden value="{!tempDivs}" />
+            
+            <apex:inputHidden value="{!report_offset}" id="report_offset" />
+            <apex:pageBlockSection showHeader="false" columns="5">
+                <apex:selectList size="0" label="Sender ID" styleClass="senderid" value="{!sender_idtc}">
+                    <apex:selectOption itemValue="" itemLabel="Select" />
+                    <apex:selectOptions value="{!senderids}" />
+                </apex:selectList>
+                <apex:input type="text" styleClass="filter_from_date" html-placeholder="dd-mm-yyyy" onfocus="DatePicker.pickDate(false, this, false);" label="From Date" value="{!filter_from_date}"/>
+                <apex:input type="text" styleClass="filter_to_date" html-placeholder="dd-mm-yyyy" label="To Date" value="{!filter_to_date}"/>
+                <apex:commandButton id="submit" value="Search" action="{!searchSMSes}" reRender="smses_lists" status="searchStatus" oncomplete="mTrack_ready()" />
+                <apex:actionStatus id="searchStatus">
+                    <apex:facet name="start" >
+                        <img src="/img/loading.gif" />                    
+                    </apex:facet>
+                </apex:actionStatus> 
+        	</apex:pageBlockSection>
+           <apex:pageBlockTable value="{! sms_reports }" var="sr" rendered="{! IF(sms_reports_count!=0,true,false)}">   
+               <apex:column >
+                   <apex:outputText value="{! sr.StatusTime }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="Status Time"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+               <apex:column >
+                   <apex:outputText value="{!sr.MessageUUID }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="MessageUUID"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+               <apex:column >
+                   <apex:outputText value="{!sr.Text }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="Message"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+               <apex:column >
+                   <apex:outputText value="{! sr.SenderId }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="SenderId"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+               <apex:column >
+                   <apex:outputText value="{! sr.NumberX }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="Number"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+               <apex:column >
+                   <apex:outputText value="{! sr.Cost }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="Cost"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+               <apex:column >
+                   <apex:outputText value="{! sr.Status }"></apex:outputText>
+                   <apex:facet name="header">
+                       <apex:outputText value="Status"></apex:outputText>
+                   </apex:facet>
+               </apex:column>
+           </apex:pageBlockTable>
+           <!-- Pagination -->
+           <apex:outputPanel rendered="{! IF(sms_reports_count=0,true,false)}" >                   
+               <h1>No Records Found </h1>                  
+           </apex:outputPanel>
+           <apex:outputPanel rendered="{! IF(sms_reports_count!=0,true,false)}" >                  
+               <apex:outputText style="font-weight:bold;" value="Page: {!report_offset}"/>
+           </apex:outputPanel> 
+           <apex:pageblockButtons location="bottom">
+               <apex:commandButton status="searchStatus" rendered="{! IF(sms_reports_count!=0 && TracknextPages=true,false,false)}" value="First Page" rerender="smses_lists" action="{!first_report}" oncomplete="mTrack_ready()" disabled="{!!has_prev_report_page}"/>
+               <apex:commandButton status="searchStatus" rendered="{! IF(sms_reports_count!=0 && TracknextPages=true,true,false)}" value="Previous" rerender="smses_lists" action="{!prev_report}" oncomplete="mTrack_ready()" disabled="{!!has_prev_report_page}"/>
+               <apex:commandButton status="searchStatus" rendered="{! IF(sms_reports_count!=0 && TracknextPages=true,true,false)}" value="Next" rerender="smses_lists" action="{!next_report}" oncomplete="mTrack_ready()" disabled="{!!has_next_report_page}"/>
+           </apex:pageblockButtons>
+       </apex:pageBlock>
+   </apex:form>
+   </apex:outputPanel>
+   <apex:outputPanel styleClass="smsPanel"  rendered="{! IF(smsmenu=='2' && smsapi==true,true,false)}" >
+        <apex:form styleClass="FrmsmsSearch" >
+            <apex:pageBlock title="SMS Block">
+                
+                <apex:inputHidden value="{!report_offset}" /> 
+                <apex:inputHidden value="{!sender_idtc}" />
+                <apex:inputHidden value="{!filter_from_date}" />
+                <apex:inputHidden value="{!filter_to_date}" />
+                
+                  <h2 class="maintitle">Section&nbsp;&nbsp;</h2>
+                  <apex:selectList size="0" styleClass="phoneblocks" value="{!phoneblock}" label="Section" required="true" >                          
+                        <apex:selectOptions value="{!phoneblocks}" />
+                  </apex:selectList>
+                  &nbsp; <apex:inputText id="searchBox" styleClass="searchBox" value="{!searchValue}" html-placeholder="Search" />
+                  <apex:commandButton id="submit" value="Search" action="{!searchContacts}" reRender="contacts_list2" status="searchStatus" oncomplete="setchecked();checkcontact();" />
+                  <apex:actionStatus id="searchStatus" onstart="clsinfo()" >
+                        <apex:facet name="start" >
+                          <img src="/img/loading.gif" />                    
+                        </apex:facet>
+                    </apex:actionStatus>    
+            </apex:pageBlock>
+        </apex:form>
+        <apex:form id="frmsms" >
+            <apex:pageBlock id="contacts_list2" >
+                
+                <apex:inputHidden value="{!report_offset}" />
+                <apex:inputHidden value="{!sender_idtc}" />
+                <apex:inputHidden value="{!filter_from_date}" />
+                <apex:inputHidden value="{!filter_to_date}" />
+                
+                <apex:inputHidden value="{!searchValue}" id="searchValue" />
+                <apex:inputHidden value="{!smsphones}" id="smsphone" />
+                <apex:inputHidden value="{!phoneblock}" id="phoneblock" />
+                <apex:inputHidden value="{!smsall}" id="smsall" />
+                <!-- Contacts List -->
+                <apex:pageBlockTable value="{! searchResults }" var="ct" rendered="{! IF(TotalPages!=0,true,false)}">                
+                    <apex:column >
+                        <apex:inputCheckbox styleClass="rphone" title="{! ct.Phone }" value="{! ct.Phone }" onchange="checkcontact(this)" />
+                        <apex:facet name="header">
+                            <apex:inputCheckbox styleClass="phoneall" selected="false" onchange="checkallphones(this)" />
+                        </apex:facet>
+                    </apex:column>
+                    <apex:column >
+                        <apex:outputText value="{!ct.Name }"></apex:outputText>
+                        <apex:facet name="header">
+                            <apex:outputText value="Name"></apex:outputText>
+                        </apex:facet>
+                    </apex:column>
+                    <apex:column >
+                        <apex:outputText value="{! ct.Phone }"></apex:outputText>
+                        <apex:facet name="header">
+                            <apex:outputText value="Phone"></apex:outputText>
+                        </apex:facet>
+                    </apex:column>
+                </apex:pageBlockTable>
+                <!-- Pagination -->
+                <apex:outputPanel rendered="{! IF(searchValue!='' && TotalPages=0,true,false)}" >                   
+                    <h1>No Records Found </h1>                  
+                </apex:outputPanel>
+                <apex:outputPanel rendered="{! IF(TotalPages!=0,true,false)}" >
+                    <apex:outputText style="font-weight:bold;" value="Total Records: {!ResultSize}"/> <br/>                    
+                    <apex:outputText style="font-weight:bold;" value="Page: {!PageNumber} of {!TotalPages}"/>
+                </apex:outputPanel>    
+                <apex:pageblockButtons >
+                    <apex:commandButton status="searchStatus" oncomplete="setchecked()" rendered="{! IF(TotalPages!=0,true,false)}" value="First Page" rerender="contacts_list2" action="{!FirstPage}" disabled="{!prev}"/>
+                    <apex:commandButton status="searchStatus" oncomplete="setchecked()" rendered="{! IF(TotalPages!=0,true,false)}" value="Previous" rerender="contacts_list2" action="{!previous}" disabled="{!prev}"/>
+                    <apex:commandButton status="searchStatus" oncomplete="setchecked()" rendered="{! IF(TotalPages!=0,true,false)}" value="Next" rerender="contacts_list2" action="{!next}" disabled="{!nxt}"/>
+                    <apex:commandButton status="searchStatus" oncomplete="setchecked()" rendered="{! IF(TotalPages!=0,true,false)}" value="Last Page" rerender="contacts_list2" action="{!LastPage}" disabled="{!nxt}"/>
+                </apex:pageblockButtons>
+            </apex:pageBlock>
+            <apex:pageBlock >                
+                <apex:pageBlockButtons location="bottom" >
+                    <apex:commandButton value="Send SMS" reRender="smsblock" onclick="clsinfo()" oncomplete="onDocReady();" status="smsStatus" action="{!sendsms}"/>
+                </apex:pageBlockButtons>
+                <apex:outputPanel id="smsblock" style="float:left;width:50%;" >
+                    <apex:actionStatus id="smsStatus" onstart="clsinfo()" onstop="clssms()" >
+                        <apex:facet name="start" >
+                            <img src="/img/loading.gif" />
+                        </apex:facet>
+                    </apex:actionStatus>                    
+                    <apex:pageMessages ></apex:pageMessages>
+                	<apex:pageBlockSection columns="1">                    
+                        <apex:selectList size="0" id="language" styleClass="language" label="Language" required="true">                          
+                            <apex:selectOptions value="{!languages}" />
+                        </apex:selectList>
+                        <apex:inputCheckbox label="All Records" styleClass="smsall" onchange="checkallcontacts()" />
+                        <apex:inputTextarea rows="8" styleClass="smsnotes" onkeyup="smslen(event)" id="smsnotes" label="Message" cols="50" value="{!smsnotes}" />
+                        <apex:inputText size="4" label="Characters" styleClass="charCount"  />
+                        <apex:outputText styleClass="smswarn" style="color:red;"></apex:outputText>
+                        <apex:selectList size="0" label="Sender ID" styleClass="senderid" value="{!sender_id}">
+                            <apex:selectOptions value="{!senderids}" />
+                        </apex:selectList>
+                    </apex:pageBlockSection>    
+                </apex:outputPanel>                
+                <apex:outputPanel id="templateBlock" style="float:left;width:50%;">					                    
+                    <apex:pageMessages ></apex:pageMessages>
+                    <apex:actionStatus id="smsTemplate" >
+                        <apex:facet name="start" >
+                            <img src="/img/loading.gif" />
+                        </apex:facet>
+                    </apex:actionStatus>  <br />
+                    <apex:inputText size="10" styleClass="tTitle" label="Template Name"  html-placeholder="Template Name" value="{!etemplate}"/> &nbsp;
+                    <apex:outputPanel styleClass="etBox" style="display:none;">
+                        <apex:inputHidden value="{!editTemp}" id="editTemp" />
+                        <apex:inputCheckbox label="Update Template" selected="true" onchange="edit_temp(this)" /> Update Template&nbsp; 
+                    </apex:outputPanel>
+                    <apex:commandButton value="Save" reRender="templateBlock" onclick="clsinfo()" status="smsTemplate" action="{!savetemplate}"/> &nbsp;
+                    <apex:selectList size="0" label="Templates" styleClass="templates" onchange="setTemplate(this)" value="{!dtemplate}">                          
+                        <apex:selectOption itemValue="" itemLabel="Select Template"/>
+                        <apex:selectOptions value="{!templates}" />
+                    </apex:selectList> &nbsp;
+                    <apex:commandButton value="Delete" reRender="templateBlock" onclick="rmTemp()" status="smsTemplate" action="{!deltemplate}"/>
+                    <apex:outputText style="display:none;" escape="false" value="{!tempDivs}"></apex:outputText>
+                </apex:outputPanel>				
+            </apex:pageBlock>                        
+        </apex:form>
+   </apex:outputPanel>
+  </apex:outputPanel>
+</apex:page>

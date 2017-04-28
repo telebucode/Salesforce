@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fields>
+        <fullName>TrackingNumber__c</fullName>
+        <deprecated>false</deprecated>
+        <externalId>false</externalId>
+        <label>Tracking Number</label>
+        <length>12</length>
+        <required>false</required>
+        <trackFeedHistory>false</trackFeedHistory>
+        <trackTrending>false</trackTrending>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <webLinks>
+        <fullName>DeliveryStatus</fullName>
+        <availability>online</availability>
+        <displayType>link</displayType>
+        <encodingKey>UTF-8</encodingKey>
+        <hasMenubar>true</hasMenubar>
+        <hasScrollbars>true</hasScrollbars>
+        <hasToolbar>true</hasToolbar>
+        <height>600</height>
+        <isResizable>true</isResizable>
+        <linkType>url</linkType>
+        <masterLabel>Delivery Status</masterLabel>
+        <openType>newWindow</openType>
+        <position>none</position>
+        <protected>false</protected>
+        <showsLocation>true</showsLocation>
+        <showsStatus>true</showsStatus>
+        <url>http://www.fedex.com/cgi-bin/tracking?tracknumbers={!Opportunity.TrackingNumber__c}&amp;action=track&amp;language=english&amp;cntry_code=us</url>
+    </webLinks>
+</CustomObject>

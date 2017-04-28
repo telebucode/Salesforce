@@ -1,0 +1,211 @@
+<apex:page standardController="Lead" extensions="salesscripter.SalesScripter">
+<apex:includeScript value="{!$Resource.salesscripter__jQuery}"  />
+
+    <script>function setFocusOnLoad() {}</script>
+    
+    <apex:form id="form1" >
+    <apex:actionFunction action="{!Save}" name="saveRecord" reRender="refreshNone" status="Login" oncomplete="sendRequest();"/>
+    <apex:actionFunction action="{!getSaveCred}" name="sendRequest" status="Login Process" reRender="refreshArea,refreshArea6" oncomplete="getblocks234();"/>
+    <apex:actionFunction action="{!getLogout}" name="logoutRequest" status="Logout" reRender="refreshArea"/>
+    <apex:actionFunction action="{!getCampaign}" name="filterSearch" status="Search" reRender="refreshNone,refreshArea0"/>    
+    <apex:actionFunction action="{!getCampaign}" name="campaignRequest" status="Search" reRender="refreshArea"/>    
+    <apex:actionFunction action="{!getCampaign}" name="campaignRequest1" status="Search" reRender="refreshArea1"/>    
+    <apex:actionFunction action="{!getCampaign}" name="campaignRequest2" status="Search" reRender="refreshArea2"/>    
+    <apex:actionFunction action="{!getCampaign}" name="campaignRequest3" status="Search" reRender="refreshArea3"/>    
+    <apex:actionFunction action="{!getCampaign}" name="campaignRequest4" status="Search" reRender="refreshArea4"/> 
+    <apex:outputPanel id="refreshArea">
+      <div id="login" class="pbSubsection" align="center"><br /><br />          
+          <div class="detailList">  
+          <apex:inputHidden value="{!ss_chid}" id="ss_chid" />
+              
+          <label class="labelCol" style="font-weight: bold;font-size: 91%;">Username : </label><apex:inputText value="{!ss_username}" id="ss_username"  /><br/><br/>
+          <label class="labelCol" style="font-weight: bold;font-size: 91%;">Password : </label><apex:inputSecret value="{!ss_password}" id="ss_password" /><br/><br/>
+          <br />
+          <input name="Save" class="btn" type="button" value="Login" onclick="saveRecord(); return false;"/>   <br /><br />
+          <a href='https://salesscripter.com/members/login/index'>Forgot Password?</a><br /><br />
+          <apex:outputPanel id="refreshNone"><apex:outputText value="{!respestr}" escape="false" style="color:#FF0000;" /></apex:outputPanel>
+          </div>
+      </div>      
+      <div id="logged" style="display:none;">
+          <div id="campaign"><apex:outputText value="{!resstr}" escape="false" /></div>
+		  <div align="right" style="font-weight: bold;font-size: 91%; float:right;">Welcome, {!HTMLENCODE(ss_username)} <input name="Save" class="btn" type="button" value="Logout" onclick="logoutRequest(); return false;"/></div>
+          <apex:outputPanel id="refreshArea0">              
+            <div id="sect0_load" align="center"></div>
+          </apex:outputPanel>
+          <div class="sf_ss_tabs">
+              <a href="javascript:void(0);" data-id="1" class="active">Call and Meeting Scripts</a>
+              <a href="javascript:void(0);" data-id="2" >Email Templates</a>
+              <a href="javascript:void(0);" data-id="3" >Voicemail Scripts</a>
+              <a href="javascript:void(0);" data-id="4" >Responses and Questions</a>
+          </div>
+          <div class="sf_ss_cont">
+          <div id="sect1">
+          <apex:outputPanel id="refreshArea1">
+              <div id="sect1_load" align="center">{!respestr}</div>
+              <apex:outputText value="{!res1str}" escape="false" />
+          </apex:outputPanel></div>
+          <div id="sect2" style="display:none;">
+          <apex:outputPanel id="refreshArea2">
+                <div id="sect2_load" align="center">{!respestr}</div>
+              <apex:outputText value="{!res2str}" escape="false" />
+          </apex:outputPanel></div>
+          <div id="sect3" style="display:none;">
+          <apex:outputPanel id="refreshArea3">
+                <div id="sect3_load" align="center">{!respestr}</div>
+              <apex:outputText value="{!res3str}" escape="false" />
+          </apex:outputPanel></div>
+          <div id="sect4" style="display:none;">
+          <apex:outputPanel id="refreshArea4">
+                <div id="sect4_load" align="center">{!respestr}</div>
+              <apex:outputText value="{!res4str}" escape="false" />
+          </apex:outputPanel>
+          </div>
+      	</div> 
+      </div>    
+      <script type="application/javascript">
+      var chk='{!respstr}';
+      if(chk=="no")
+      {   
+          document.getElementById('login').setAttribute('style','display:visible');
+          document.getElementById('logged').setAttribute('style','display:none'); 
+      }
+      else
+      {
+          document.getElementById('login').setAttribute('style','display:none');
+          document.getElementById('logged').setAttribute('style','display:visible');
+      }
+        function submitForm()
+        {
+            var el = document.getElementById("campaign");
+            if (el) {
+                var selects = el.getElementsByTagName("select");
+                var chidn = "";
+                for(var n=0;n<selects.length;n++)
+                    chidn += "&"+selects[n].name+"="+selects[n].value;
+                document.getElementById("sect0_load").innerHTML='<img src="https://salesscripter.com/loader.gif" />';
+                document.getElementById("j_id0:form1:ss_chid").value=chidn+"&s=0";
+                filterSearch();
+                document.getElementById("j_id0:form1:ss_chid").value="&s=0";
+                filterSearch();
+            }
+        }
+        
+        //Panels on/off
+		j$ = jQuery.noConflict();
+		j$(function(){
+            j$('.sf_ss_tabs a').click(function(){
+                var dis = this;
+                if(!j$(dis).hasClass('active'))
+                {
+                    j$('.sf_ss_tabs a').removeClass('active');
+                    j$(dis).addClass('active');
+                    j$('#sect1').hide();
+                    j$('#sect2').hide();
+                    j$('#sect3').hide();
+                    j$('#sect4').hide();
+                    j$('#sect'+j$(dis).attr('data-id')).show();
+                }
+            });
+           j$('table').css('margin','').css('width','100%');
+        });
+    </script>
+	<style>
+       			.sf_ss_tabs a {
+				  display: inline-block;
+				  width: 23%;
+				  background: #757575;
+				  font-weight: bold;
+				  color: #fff;
+				  text-decoration: none;
+				  line-height: 20px;
+				}
+				.sf_ss_tabs a:hover {
+				  text-decoration: none;
+				  color: #fff;
+				  background: rgba(220, 0, 0, 1);
+				}
+				.sf_ss_tabs a.active {
+				  text-decoration: none;
+				  color: #fff;
+				  background: rgba(220, 0, 0, 1);
+				}
+				.sf_ss_tabs {
+				  width: 100%;
+				  text-align: center;
+				}
+				#asect1, #asect2, #asect3, #asect4{
+				  display: none;
+				}
+				#campaign{
+  			      text-align: center;
+				  /*margin: 0 auto;*/
+				  width: 85%;
+				  background: #757575;
+				  height: 30px;
+        		  display: block;
+        		  margin-bottom: 3px;
+				  float:left;
+				}
+        		ul.breadcrumbs li{
+				  display: inline-block;
+				  line-height: 30px;
+				}
+				ul.breadcrumbs li select{
+				  height: 30px;
+				  background: rgb(238, 238, 238);
+          		  max-width: 100%;
+        		  width: 90%;
+        		}
+				ul.breadcrumbs li span{
+				  color: #ffffff !important;
+        		}
+        		ul.breadcrumbs li:nth-child(odd)
+        		{
+        		  width: 8.3%;
+        		}
+        		ul.breadcrumbs li:nth-child(even)
+        		{
+        		  width: 20.9%;
+        		  text-align: left;
+        		}
+        		#sect1_load, #sect2_load, #sect3_load, #sect4_load{
+        		  width:100%;
+        		}
+	</style>
+    </apex:outputPanel>
+    </apex:form>  
+    <form id="form2" method="post" action="https://salesscripter.com/ssapp.php" target="_blank">
+        <apex:outputPanel id="refreshArea6">
+        <input type="hidden" value="{!ss_username}" id="ss_username" name="username"/>
+        <input type="hidden" value="{!ss_password}" id="ss_password" name="password"/>
+		<input type="hidden" value="{!ss_vrcid}" id="ss_vrcid" name="ss_vrcid"/>
+        <input type="hidden" value="" id="ftype" name="ftype"/>
+        <input type="hidden" value="" id="fname" name="fname"/>
+        
+        <script>
+            //getLink
+            function getLink(fname,ftype) {
+            document.getElementById("fname").value=fname;
+            document.getElementById("ftype").value=ftype;
+            document.getElementById("form2").submit();
+            }
+        </script>
+        </apex:outputPanel>
+    </form>
+    <script type="text/javascript">
+        //Run remaining blocks
+        function getblocks234()
+        {
+            for(var n=2;n<=4;n++) {
+                console.log('Start '+n);
+                document.getElementById("j_id0:form1:ss_chid").value="&s="+n;
+                document.getElementById("sect"+n+"_load").innerHTML='<img src="https://salesscripter.com/loader.gif" />';
+                if(n==2) campaignRequest2();
+                else if(n==3) campaignRequest3();
+                else if(n==4) campaignRequest4();  
+                console.log('End '+n);
+            }
+        }
+        var autolog="{!JSENCODE(respestr)}";if(autolog.length>0)sendRequest();
+    </script>
+</apex:page>
